@@ -8,7 +8,7 @@ A complete, production-ready implementation of **CTSM's Maintenance Respiration*
 ✅ Accurate physics translation from Fortran  
 ✅ Comprehensive test suite (>95% coverage)  
 ✅ JAX optimizations (JIT, vmap, automatic differentiation)  
-✅ Professional code structure and documentation  
+✅ Professional code structure and documentation. 
 
 ## Installation
 
