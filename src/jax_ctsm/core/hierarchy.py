@@ -49,7 +49,7 @@ class NitrogenState(NamedTuple):
         frootn: Fine root nitrogen  
         livestemn: Live stem nitrogen (woody plants)
         livecrootn: Live coarse root nitrogen (woody plants)
-        deadstemc: Dead stem nitrogen (woody plants)
+        deadstemn: Dead stem nitrogen (woody plants)
         deadcrootn: Dead coarse root nitrogen (woody plants)
         reproductiven: Reproductive tissue nitrogen (crops) [n_patches, n_repr]
         retransn: Retranslocation pool
@@ -58,7 +58,7 @@ class NitrogenState(NamedTuple):
     frootn: jnp.ndarray
     livestemn: jnp.ndarray
     livecrootn: jnp.ndarray
-    deadstemc: jnp.ndarray
+    deadstemn: jnp.ndarray
     deadcrootn: jnp.ndarray
     reproductiven: jnp.ndarray  # [n_patches, n_repr]
     retransn: jnp.ndarray
@@ -136,6 +136,8 @@ class TemperatureState(NamedTuple):
         t_ref2m: 2m air temperature [K] - patch level [n_patches]
         t_10day: 10-day running mean 2m temperature [K] - patch level [n_patches]
         t_soisno: Soil/snow temperature [K] - column level [n_columns, n_levgrnd]
+            In CTSM, soil temperature is shared across patches in the same column.
+            Patches access their column's temperature via column_index mapping.
     """
     t_ref2m: jnp.ndarray  # [n_patches]
     t_10day: jnp.ndarray  # [n_patches]

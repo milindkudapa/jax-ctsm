@@ -31,7 +31,7 @@ def create_demo_patch():
         frootn=jnp.array([35.0]),
         livestemn=jnp.array([110.0]),
         livecrootn=jnp.array([90.0]),
-        deadstemc=jnp.zeros(1),
+        deadstemn=jnp.zeros(1),
         deadcrootn=jnp.zeros(1),
         reproductiven=jnp.zeros((1, n_repr)),
         retransn=jnp.zeros(1),

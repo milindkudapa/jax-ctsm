@@ -91,6 +91,27 @@ pytest --cov=src/jax_ctsm tests/
 pytest tests/physics/test_maintenance_respiration.py -v
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[📖 Getting Started](QUICKSTART.md)** - Quick start guide for new users
+- **[📚 Documentation Index](docs/README.md)** - Complete documentation overview
+- **[🏗️ Design Documents](docs/design/)** - Architecture and implementation details
+- **[📖 User Guides](docs/guides/)** - In-depth guides (spatial hierarchy, etc.)
+- **[📊 Reports](docs/reports/)** - Validation results and development reports
+- **[🤝 Contributing](CONTRIBUTING.md)** - Development guidelines
+
+### Key Documents
+
+| Document | Description |
+|----------|-------------|
+| [QUICKSTART.md](QUICKSTART.md) | Quick start guide for new users |
+| [docs/guides/spatial_hierarchy.md](docs/guides/spatial_hierarchy.md) | Understanding CTSM's spatial structure |
+| [docs/design/driver_design.md](docs/design/driver_design.md) | Driver architecture and Fortran comparison |
+| [docs/reports/validation_results.md](docs/reports/validation_results.md) | Validation against Fortran CTSM |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute to the project |
+
 ## Citation
 
 If you use this code, please cite:

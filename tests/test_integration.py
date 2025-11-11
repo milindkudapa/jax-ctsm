@@ -83,7 +83,7 @@ class TestEndToEndWorkflow:
             frootn=jnp.array([40.0, 38.0, 25.0, 20.0, 22.0]),
             livestemn=jnp.array([120.0, 110.0, 80.0, 0.0, 0.0]),  # Woody only
             livecrootn=jnp.array([100.0, 95.0, 65.0, 0.0, 0.0]),  # Woody only
-            deadstemc=jnp.zeros(n_patches),
+            deadstemn=jnp.zeros(n_patches),
             deadcrootn=jnp.zeros(n_patches),
             reproductiven=jnp.zeros((n_patches, n_repr)),
             retransn=jnp.zeros(n_patches),
@@ -246,7 +246,7 @@ class TestJAXTransformations:
             frootn=jnp.array([30.0]),
             livestemn=jnp.array([100.0]),
             livecrootn=jnp.array([80.0]),
-            deadstemc=jnp.zeros(1),
+            deadstemn=jnp.zeros(1),
             deadcrootn=jnp.zeros(1),
             reproductiven=jnp.zeros((1, n_repr)),
             retransn=jnp.zeros(1),
@@ -329,6 +329,143 @@ class TestPhysicalConsistency:
             2.0,
             rtol=1e-5,
         )
+
+
+class TestSpatialHierarchy:
+    """Test spatial hierarchy with multiple patches per column."""
+    
+    def test_multiple_patches_per_column(self):
+        """Test that multiple patches can share a column's soil temperature.
+        
+        This is critical for CTSM's design where multiple PFTs can exist
+        on the same soil column (e.g., grass and tree in same location).
+        """
+        # Setup: 4 patches, 2 columns (2 patches per column)
+        n_patches = 4
+        n_columns = 2
+        n_levgrnd = 10
+        
+        # Nitrogen state
+        nitrogen = NitrogenState(
+            leafn=jnp.array([40.0, 35.0, 50.0, 45.0]),
+            frootn=jnp.array([25.0, 20.0, 30.0, 28.0]),
+            livestemn=jnp.array([80.0, 0.0, 100.0, 0.0]),  # Patches 0,2 woody
+            livecrootn=jnp.array([60.0, 0.0, 80.0, 0.0]),
+            deadstemn=jnp.zeros(n_patches),
+            deadcrootn=jnp.zeros(n_patches),
+            reproductiven=jnp.zeros((n_patches, 2)),
+            retransn=jnp.zeros(n_patches),
+        )
+        
+        # Carbon state (minimal, just for structure)
+        carbon = CarbonState(
+            leafc=jnp.zeros(n_patches),
+            frootc=jnp.zeros(n_patches),
+            livestemc=jnp.zeros(n_patches),
+            livecrootc=jnp.zeros(n_patches),
+            deadstemc=jnp.zeros(n_patches),
+            deadcrootc=jnp.zeros(n_patches),
+            reproductivec=jnp.zeros((n_patches, 2)),
+            cpool=jnp.zeros(n_patches),
+            xsmrpool=jnp.zeros(n_patches),
+        )
+        
+        # Canopy state
+        canopy = CanopyState(
+            lai_sun=jnp.array([2.0, 1.5, 2.5, 2.0]),
+            lai_shade=jnp.array([1.0, 0.8, 1.2, 1.0]),
+            lmr_sun=jnp.array([1.0, 0.8, 1.2, 1.0]),
+            lmr_shade=jnp.array([0.6, 0.5, 0.7, 0.6]),
+            frac_veg_nosno=jnp.ones(n_patches),
+        )
+        
+        # Temperature state - CRITICAL: soil temp is column-level
+        # Column 0 has warmer soil, Column 1 has cooler soil
+        soil_temps_column = jnp.array([
+            [295.15 - i * 0.5 for i in range(n_levgrnd)],  # Column 0: warmer
+            [290.15 - i * 0.5 for i in range(n_levgrnd)],  # Column 1: cooler
+        ])
+        
+        temperature = TemperatureState(
+            t_ref2m=jnp.array([298.15, 298.15, 293.15, 293.15]),  # Patch-level
+            t_10day=jnp.array([295.15, 295.15, 290.15, 290.15]),
+            t_soisno=soil_temps_column,  # Column-level [n_columns, n_levgrnd]
+        )
+        
+        # Soil state with root distribution
+        root_fracs = np.zeros((n_patches, n_levgrnd))
+        for p in range(n_patches):
+            fracs = np.exp(-np.arange(n_levgrnd) * 0.3)
+            root_fracs[p, :] = fracs / fracs.sum()
+        
+        soil = SoilState(
+            crootfr=jnp.array(root_fracs),
+            depth=jnp.array([0.01, 0.04, 0.09, 0.16, 0.26, 0.40, 0.58, 0.80, 1.06, 1.36]),
+        )
+        
+        # Spatial info - KEY: patches 0,1 share column 0; patches 2,3 share column 1
+        spatial = SpatialInfo(
+            patch_index=jnp.array([0, 1, 2, 3]),
+            column_index=jnp.array([0, 0, 1, 1]),  # ← 2 patches per column
+            landunit_index=jnp.array([0, 0]),
+            gridcell_index=jnp.array([0]),
+            weights=jnp.array([0.3, 0.2, 0.3, 0.2]),
+            pft_type=jnp.array([1, 12, 1, 12]),  # Tree, grass, tree, grass
+            is_vegetated=jnp.ones(n_patches, dtype=bool),
+        )
+        
+        # PFT params
+        pft_params = {
+            "is_woody": jnp.array([True, False, True, False]),
+            "is_crop": jnp.array([False, False, False, False]),
+        }
+        
+        # Create patch state
+        patch_state = PatchState(
+            carbon=carbon,
+            nitrogen=nitrogen,
+            canopy=canopy,
+            temperature=temperature,
+            soil=soil,
+            spatial=spatial,
+            pft_params=pft_params,
+        )
+        
+        # Calculate maintenance respiration
+        params = RespirationParams()
+        fluxes = calculate_maintenance_respiration(patch_state, params)
+        
+        # Verify calculations work
+        assert fluxes.leaf_mr.shape == (n_patches,)
+        assert fluxes.froot_mr.shape == (n_patches,)
+        
+        # Patches sharing column should use the same soil temperature
+        # So patches 0,1 should have similar root MR (scaled by N content)
+        # And patches 2,3 should have similar root MR (scaled by N content)
+        
+        # Verify root MR is reasonable
+        assert jnp.all(fluxes.froot_mr > 0), "All patches should have positive root MR"
+        
+        # Patches in warmer column (0,1) should have higher root MR than cooler (2,3)
+        # when normalized by nitrogen content
+        mr_per_n_warm = (fluxes.froot_mr[0] + fluxes.froot_mr[1]) / (
+            nitrogen.frootn[0] + nitrogen.frootn[1]
+        )
+        mr_per_n_cool = (fluxes.froot_mr[2] + fluxes.froot_mr[3]) / (
+            nitrogen.frootn[2] + nitrogen.frootn[3]
+        )
+        
+        # Warmer soil → higher MR per unit N
+        assert mr_per_n_warm > mr_per_n_cool, (
+            f"Warmer column should have higher MR per unit N: "
+            f"{mr_per_n_warm:.6e} vs {mr_per_n_cool:.6e}"
+        )
+        
+        # Verify stem MR only calculated for woody plants
+        assert fluxes.livestem_mr[1] == 0.0, "Grass (patch 1) should have zero stem MR"
+        assert fluxes.livestem_mr[3] == 0.0, "Grass (patch 3) should have zero stem MR"
+        assert fluxes.livestem_mr[0] > 0.0, "Tree (patch 0) should have positive stem MR"
+        assert fluxes.livestem_mr[2] > 0.0, "Tree (patch 2) should have positive stem MR"
 
 
 if __name__ == "__main__":

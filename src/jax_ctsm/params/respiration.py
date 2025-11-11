@@ -75,11 +75,10 @@ class RespirationParams(NamedTuple):
         Returns:
             Acclimation factor to multiply base rates [n_patches]
         """
-        if not self.use_acclimation:
-            return jnp.ones_like(t_10day)
-        
+        # Use where instead of if for JIT compatibility
         temp_c = t_10day - 273.15
-        return 10.0 ** (-self.acclimation_coef * (temp_c - reference_temp))
+        acclim_factor = 10.0 ** (-self.acclimation_coef * (temp_c - reference_temp))
+        return jnp.where(self.use_acclimation, acclim_factor, jnp.ones_like(t_10day))
 
 
 # Default parameter sets for different scenarios

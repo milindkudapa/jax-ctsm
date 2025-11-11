@@ -45,7 +45,7 @@ def sample_patch_state():
         frootn=jnp.array([30.0, 20.0, 25.0]),
         livestemn=jnp.array([100.0, 0.0, 80.0]),  # Woody only
         livecrootn=jnp.array([80.0, 0.0, 60.0]),  # Woody only
-        deadstemc=jnp.zeros(n_patches),
+        deadstemn=jnp.zeros(n_patches),
         deadcrootn=jnp.zeros(n_patches),
         reproductiven=jnp.array([[0.0, 0.0], [15.0, 10.0], [0.0, 0.0]]),  # Crop only
         retransn=jnp.zeros(n_patches),

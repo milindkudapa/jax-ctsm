@@ -6,6 +6,10 @@ from jax_ctsm.core.hierarchy import (
     ColumnState,
     PatchState,
     NitrogenState,
+    CarbonState,
+    CanopyState,
+    TemperatureState,
+    SoilState,
     CarbonFlux,
     SpatialInfo,
 )
@@ -16,6 +20,10 @@ __all__ = [
     "ColumnState",
     "PatchState",
     "NitrogenState",
+    "CarbonState",
+    "CanopyState",
+    "TemperatureState",
+    "SoilState",
     "CarbonFlux",
     "SpatialInfo",
 ]
